@@ -70,7 +70,7 @@ export default function Home() {
     if (!docSnap.exists()) {
       return;
     }
-    const { counter } = docSnap.data() as {counter:number};
+    const { counter } = docSnap.data() as { counter: number };
     if (counter == 1 && increment == false) {
       await handleDeleteItem(name);
       return;
@@ -89,7 +89,17 @@ export default function Home() {
   return (
     <main className="h-[100vh] p-10 flex flex-col items-center">
       <Container maxWidth="sm">
-        <h1>Pantry App</h1>
+        <div className="flex justify-between items-center">
+          <h1>Pantry App</h1>
+          <a
+            className="text-blue-600 hover:bg-gray-400 
+            hover:text-blue-500 rounded-sm px-2"
+            target="_blank"
+            href="https://ousamuel.vercel.app/"
+          >
+            Samuel Ou
+          </a>
+        </div>
         <TextField
           required
           label="New Item"
