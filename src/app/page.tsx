@@ -12,6 +12,7 @@ import {
   ListItem,
   Button,
   TextField,
+  Checkbox,
 } from "@mui/material";
 import {
   collection,
@@ -28,19 +29,23 @@ interface PantryItem {
   id: string;
   name: string;
   counter: number;
+  checked: boolean;
 }
 
 export default function Home() {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [newItem, setNewItem] = useState<string>("");
-
+  const [searchBy, setSearchBy] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
   const fetchItems = async () => {
     const querySnapshot = await getDocs(collection(db, "pantryItems"));
     const itemsList = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       name: doc.data().name,
       counter: doc.data().counter,
+      checked: doc.data().checked,
     }));
+    setLoading(false);
     setItems(itemsList);
   };
   const handleAddItem = async () => {
@@ -56,6 +61,7 @@ export default function Home() {
     await setDoc(docRef, {
       name: newItem.trim(),
       counter: 1,
+      checked: false,
     });
     setNewItem("");
     fetchItems();
@@ -82,7 +88,16 @@ export default function Home() {
 
     fetchItems();
   };
+  const handleChecked = async (id: string) => {
+    const docRef = doc(collection(db, "pantryItems"), id);
+    const docSnap = await getDoc(docRef);
+    const { checked } = docSnap.data() as { checked: boolean };
 
+    await updateDoc(docRef, {
+      checked: !checked,
+    });
+    fetchItems();
+  };
   useEffect(() => {
     fetchItems();
   }, []);
@@ -116,32 +131,60 @@ export default function Home() {
         >
           Add Item
         </Button>
-        {items.length < 1 ? (
+        <div className="flex items-center whitespace-nowrap my-4">
+          <h2 className="mr-3">Filter items by: </h2>
+          <TextField
+            label="e.g. Tomato"
+            value={searchBy}
+            onChange={(e) => setSearchBy(e.target.value)}
+            fullWidth
+          />
+        </div>
+        {items.length < 1 && !loading ? (
           <h2 className="text-center opacity-50 my-4">No Items Yet</h2>
+        ) : items.filter((item: any) =>
+            item.name.toLowerCase().includes(searchBy.toLowerCase())
+          ).length < 1 && !loading ? (
+          <h2 className="text-center opacity-50 my-4">
+            No pantry items match this search
+          </h2>
         ) : null}
         <List>
-          {items.map((item) => (
-            <ListItem key={item.id} divider>
-              <ListItemText
-                primary={`${item.name} (Quantity: ${item.counter})`}
-              />
-              <IconButton onClick={() => handleUpdateCounter(item.name, true)}>
-                +
-              </IconButton>
-              <IconButton onClick={() => handleUpdateCounter(item.name, false)}>
-                -
-              </IconButton>
-              <ListItemSecondaryAction>
+          {items
+            .filter((item: any) =>
+              item.name.toLowerCase().includes(searchBy.toLowerCase())
+            )
+            .map((item) => (
+              <ListItem key={item.id} divider>
+                <Checkbox
+                  checked={item.checked}
+                  onChange={() => handleChecked(item.id)}
+                />
+
+                <ListItemText
+                  primary={`${item.name} (Quantity: ${item.counter})`}
+                />
                 <IconButton
-                  edge="end"
-                  aria-label="delete"
-                  onClick={() => handleDeleteItem(item.id)}
+                  onClick={() => handleUpdateCounter(item.name, true)}
                 >
-                  X
+                  +
                 </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
-          ))}
+                <IconButton
+                  onClick={() => handleUpdateCounter(item.name, false)}
+                >
+                  -
+                </IconButton>
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleDeleteItem(item.id)}
+                  >
+                    X
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
         </List>
       </Container>
     </main>
